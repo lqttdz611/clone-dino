@@ -160,7 +160,7 @@ const DinoGame = () => {
 
   const startGame = () => {
     const canvas = canvasRef.current;
-    const groundY = canvas.height - 100;
+    const groundY = canvas.height - 120;
     setBgGradientIndex(0);
     gameData.current = {
       dino: {
@@ -213,6 +213,7 @@ const DinoGame = () => {
     if (score > highScore) {
       setHighScore(score);
       window.dinoHighScore = score;
+      sounds.current.highScore();
     }
 
     // Update leaderboard
@@ -233,7 +234,7 @@ const DinoGame = () => {
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
-    const groundY = canvas.height - 100;
+    const groundY = canvas.height - 120;
     gameData.current.groundY = groundY;
 
     const draw = () => {
@@ -292,7 +293,7 @@ const DinoGame = () => {
       if (currentSprite && currentSprite.complete) {
         const drawWidth = dino.ducking ? dino.width + 10 : dino.width;
         const drawHeight = dino.ducking ? dino.height - 5 : dino.height;
-        const drawY = dino.ducking ? dino.y + 25 : dino.y;
+        const drawY = dino.ducking ? dino.y + 15 - 15 : dino.y - 15;
 
         // Crop chỉ lấy nhân vật to (bỏ nhân vật nhỏ)
         ctx.drawImage(currentSprite, dino.x, drawY, drawWidth, drawHeight);
@@ -356,9 +357,6 @@ const DinoGame = () => {
           obstacles.splice(i, 1);
           setScore((s) => {
             const newScore = s + 10;
-            if (newScore > highScore) {
-              sounds.current.highScore();
-            }
             const crossedHundred =
               Math.floor(s / 100) < Math.floor(newScore / 100);
             if (crossedHundred) {
@@ -408,9 +406,6 @@ const DinoGame = () => {
           birds.splice(i, 1);
           setScore((s) => {
             const newScore = s + 15;
-            if (newScore > highScore) {
-              sounds.current.highScore();
-            }
             const crossedHundred =
               Math.floor(s / 100) < Math.floor(newScore / 100);
             if (crossedHundred) {
