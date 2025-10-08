@@ -88,7 +88,6 @@ const DinoGame = () => {
     playerDuck: null,
     playerIdle: null,
   });
-  const animationFrame = useRef(0);
 
   useEffect(() => {
     // Preload audio files
