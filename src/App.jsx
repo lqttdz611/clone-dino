@@ -451,7 +451,7 @@ const DinoGame = () => {
     return () => {
       if (gameLoop.current) clearInterval(gameLoop.current);
     };
-  }, [gameState, theme, gameOver, isDark]);
+  }, [gameState, theme, gameOver, isDark, bgGradients, bgGradientIndex, score]);
 
   useEffect(() => {
     const handleKeyPress = (e) => {
