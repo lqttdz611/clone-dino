@@ -12,7 +12,7 @@ const GameHeader = ({
   onFullscreen,
 }) => {
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-center mb-2 sm:mb-4 gap-2 sm:gap-0">
+    <div className="game-header flex flex-col sm:flex-row justify-between items-center mb-2 sm:mb-4 gap-2 sm:gap-0">
       <div className="flex gap-2 sm:gap-4 items-center">
         <div
           className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg ${
@@ -63,8 +63,9 @@ const GameHeader = ({
             isDark
               ? "bg-gray-800 hover:bg-gray-700 active:bg-gray-600"
               : "bg-white hover:bg-gray-100 active:bg-gray-200"
-          } shadow-lg transition-all touch-manipulation`}
+          } shadow-lg transition-all touch-manipulation active:scale-95`}
           title="Fullscreen"
+          aria-label="Toggle fullscreen"
         >
           <Maximize
             className={isDark ? "text-blue-400" : "text-blue-600"}

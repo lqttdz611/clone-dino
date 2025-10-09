@@ -21,7 +21,7 @@ export const useGameLogic = () => {
     birds: [],
     clouds: [],
     ground: 0,
-    speed: 6,
+    speed: 8,
     frame: 0,
     gravity: 0.8,
     jumpPower: -18, // Tăng từ -15 lên -18 để nhảy cao hơn
@@ -59,7 +59,7 @@ export const useGameLogic = () => {
       birds: [],
       clouds: [],
       ground: 0,
-      speed: 6,
+      speed: 8,
       frame: 0,
       gravity: 0.8,
       jumpPower: -15,

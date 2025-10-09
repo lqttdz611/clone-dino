@@ -15,7 +15,7 @@ const GameCanvas = ({
   gameOver,
 }) => {
   const animationFrameId = useRef(null);
-  const gameLoopRef = useRef(null);
+  const lastFrameTime = useRef(0);
 
   // Store dynamic values in refs to avoid dependency issues
   const dynamicRefs = useRef({
@@ -53,25 +53,36 @@ const GameCanvas = ({
         cancelAnimationFrame(animationFrameId.current);
         animationFrameId.current = null;
       }
-      if (gameLoopRef.current) {
-        clearInterval(gameLoopRef.current);
-        gameLoopRef.current = null;
-      }
       return;
     }
 
     const ctx = canvas.getContext("2d");
-    const groundY = canvas.height - 120;
+    const groundY = canvas.height - 150;
     dynamicRefs.current.gameData.current.groundY = groundY;
 
-    const draw = () => {
+    const draw = (currentTime) => {
       // Nếu không phải đang chơi, dừng lại
       if (gameState !== "playing") return;
+
+      // Simple frame rate control - target 60 FPS
+      if (!lastFrameTime.current) {
+        lastFrameTime.current = currentTime;
+      }
+
+      const deltaTime = currentTime - lastFrameTime.current;
+      const targetFrameTime = 1000 / 60; // 16.67ms for 60 FPS
+
+      if (deltaTime < targetFrameTime) {
+        return; // Skip this frame if too fast
+      }
+
+      lastFrameTime.current = currentTime;
 
       const { dino, obstacles, birds, ground, speed, frame } =
         dynamicRefs.current.gameData.current;
 
       // Clear canvas
+
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
       const currentGradient =
         dynamicRefs.current.bgGradients[dynamicRefs.current.bgGradientIndex];
@@ -87,21 +98,22 @@ const GameCanvas = ({
       // Ground pattern
       ctx.strokeStyle = dynamicRefs.current.isDark ? "#1a1a2e" : "#6b5d4f";
       ctx.lineWidth = 2;
-      for (let i = 0; i < canvas.width + 40; i += 40) {
+      for (let i = 0; i < canvas.width + 50; i += 50) {
         ctx.beginPath();
         ctx.moveTo(i - ground, groundY + 50);
         ctx.lineTo(i - ground, groundY + 100);
         ctx.stroke();
       }
-      if (frame % 200 === 0 && Math.random() > 0.1) {
-        // 70% cơ hội spawn
-        const cloudType = Math.random() > 0.5 ? "cloud1" : "cloud2"; // Random chọn loại mây
+      // Balanced cloud spawn rate
+      if (frame % 250 === 0 && Math.random() > 0.2) {
+        // Balanced spawn rate
+        const cloudType = Math.random() > 0.5 ? "cloud1" : "cloud2";
         dynamicRefs.current.gameData.current.clouds.push({
           x: canvas.width,
-          y: 50 + Math.random() * 100, // Random từ y=50 đến y=150 (cao hơn)
+          y: 50 + Math.random() * 100,
           width: 80,
           height: 30,
-          speed: 1 + Math.random() * 2, // Tốc độ bay chậm 1-3px/frame
+          speed: 1 + Math.random() * 2,
           type: cloudType,
         });
       }
@@ -138,8 +150,9 @@ const GameCanvas = ({
           clouds.splice(i, 1);
         }
       }
-      // Update dino
-      dino.vy += dynamicRefs.current.gameData.current.gravity;
+      // Update dino - optimized for mobile
+      const gravity = dynamicRefs.current.gameData.current.gravity;
+      dino.vy += gravity;
       dino.y += dino.vy;
 
       if (dino.y >= groundY) {
@@ -415,20 +428,25 @@ const GameCanvas = ({
           ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
         }
 
-        // Collision detection - Chỉ kiểm tra khi obstacle gần dino (tối ưu hóa)
+        // Optimized collision detection for mobile
+        const dinoX = dino.x;
+        const dinoY = dino.y;
+        const dinoWidth = dino.ducking ? dino.width + 20 : dino.width;
+        const dinoHeight = dino.height;
+
         if (
           gameState === "playing" &&
-          obs.x < dino.x + 100 &&
-          obs.x + obs.width > dino.x - 50
+          obs.x < dinoX + 80 &&
+          obs.x + obs.width > dinoX - 30
         ) {
           if (
-            dino.x < obs.x + obs.width &&
-            dino.x + (dino.ducking ? dino.width + 20 : dino.width) > obs.x &&
-            dino.y + (dino.ducking ? 30 : 0) < obs.y + obs.height &&
-            dino.y + dino.height > obs.y
+            dinoX < obs.x + obs.width &&
+            dinoX + dinoWidth > obs.x &&
+            dinoY + (dino.ducking ? 30 : 0) < obs.y + obs.height &&
+            dinoY + dinoHeight > obs.y
           ) {
             dynamicRefs.current.gameOver();
-            return; // Dừng ngay sau khi gameOver để tránh multiple calls
+            return;
           }
         }
 
@@ -483,22 +501,22 @@ const GameCanvas = ({
           height: bird.height - 20, // Giảm 20px height
         };
 
-        // Collision detection - Chỉ kiểm tra khi bird gần dino (tối ưu hóa)
+        // Optimized bird collision detection for mobile
         if (
           gameState === "playing" &&
-          bird.x < dino.x + 100 &&
-          bird.x + bird.width > dino.x - 50
+          bird.x < dino.x + 80 &&
+          bird.x + bird.width > dino.x - 30
         ) {
+          const dinoWidth = dino.ducking ? dino.width + 20 : dino.width;
           if (
             dino.x < birdHitbox.x + birdHitbox.width &&
-            dino.x + (dino.ducking ? dino.width + 20 : dino.width) >
-              birdHitbox.x &&
+            dino.x + dinoWidth > birdHitbox.x &&
             dino.y + (dino.ducking ? 30 : 0) <
               birdHitbox.y + birdHitbox.height &&
             dino.y + dino.height > birdHitbox.y
           ) {
             dynamicRefs.current.gameOver();
-            return; // Dừng ngay sau khi gameOver để tránh multiple calls
+            return;
           }
         }
 
@@ -522,7 +540,7 @@ const GameCanvas = ({
       }
 
       // Update ground scroll
-      dynamicRefs.current.gameData.current.ground = (ground + speed) % 40;
+      dynamicRefs.current.gameData.current.ground = (ground + speed) % 50;
 
       // Increase speed over time - Fix setScore bug
       if (frame % 100 === 0) {
@@ -539,20 +557,20 @@ const GameCanvas = ({
           targetSpeed += 2; // +2 speed boost at 500 points
         }
 
-        if (speed < targetSpeed && speed < 20) {
-          // Increased max speed to 20
+        if (speed < targetSpeed && speed < 25) {
+          // Increased max speed to 25
           dynamicRefs.current.gameData.current.speed = Math.min(
             targetSpeed,
-            20
+            25
           );
         }
       }
 
       // HARDCORE MODE - Balanced difficulty increases
-      if (frame % 300 === 0) {
-        // Every 5 seconds instead of 3
-        if (speed < 16) {
-          dynamicRefs.current.gameData.current.speed += 0.4; // Reduced from 0.8
+      if (frame % 250 === 0) {
+        // Every 4 seconds for faster progression
+        if (speed < 20) {
+          dynamicRefs.current.gameData.current.speed += 0.5; // Increased from 0.4
         }
 
         if (dynamicRefs.current.gameData.current.gravity < 1.2) {
@@ -567,19 +585,24 @@ const GameCanvas = ({
       dynamicRefs.current.gameData.current.frame++;
     };
 
-    gameLoopRef.current = setInterval(draw, 1000 / 60);
+    // Simple and reliable animation loop
+    const gameLoop = (currentTime) => {
+      draw(currentTime);
+      if (gameState === "playing") {
+        animationFrameId.current = requestAnimationFrame(gameLoop);
+      }
+    };
+
+    // Start the animation loop
+    animationFrameId.current = requestAnimationFrame(gameLoop);
 
     return () => {
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
         animationFrameId.current = null;
       }
-      if (gameLoopRef.current) {
-        clearInterval(gameLoopRef.current);
-        gameLoopRef.current = null;
-      }
     };
-  }, [gameState]); // CHỈ giữ gameState - loại bỏ tất cả dependencies khác để tránh re-render không cần thiết
+  }, [gameState, canvasRef]); // Include canvasRef to fix linter warning
   return null;
 };
 
