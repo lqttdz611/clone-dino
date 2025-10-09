@@ -4,5 +4,5 @@ import { defineConfig } from "vite";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: "/dino-game/", // Thay đổi thành tên repo của bạn
+  base: "/clone-dino/", // Tên repo thực tế
 });
