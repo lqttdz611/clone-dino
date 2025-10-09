@@ -147,9 +147,20 @@ const DinoGame = () => {
     images.current.playerDuck = playerSprite;
     images.current.playerIdle = playerSprite;
 
+    const bgCloud = new Image();
+    bgCloud.src = "./game_canvas/background.png";
+    images.current.bgCloud = bgCloud;
+
+    const bgCloud2 = new Image();
+    bgCloud2.src = "./game_canvas/cloud2.png";
+    images.current.bgCloud2 = bgCloud2;
     // Load saved data
     const saved = window.dinoHighScore || 0;
     if (saved) setHighScore(parseInt(saved));
+
+    const birdSprite = new Image();
+    birdSprite.src = "./game_canvas/bird.png";
+    images.current.birdSprite = birdSprite;
 
     const savedLeaderboard = window.dinoLeaderboard || [];
     if (savedLeaderboard) setLeaderboard(savedLeaderboard);

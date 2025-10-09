@@ -19,11 +19,12 @@ export const useGameLogic = () => {
     },
     obstacles: [],
     birds: [],
+    clouds: [],
     ground: 0,
     speed: 6,
     frame: 0,
     gravity: 0.8,
-    jumpPower: -15,
+    jumpPower: -18, // Tăng từ -15 lên -18 để nhảy cao hơn
   });
 
   // Sound effects
@@ -56,6 +57,7 @@ export const useGameLogic = () => {
       },
       obstacles: [],
       birds: [],
+      clouds: [],
       ground: 0,
       speed: 6,
       frame: 0,
@@ -103,8 +105,11 @@ export const useGameLogic = () => {
 
   const duck = useCallback(() => {
     const { dino, groundY } = gameData.current;
-    if (!dino.jumping && dino.y >= groundY) {
-      dino.ducking = true;
+    dino.ducking = true;
+
+    // Nếu đang nhảy, lao xuống nhanh
+    if (dino.jumping && dino.y < groundY) {
+      dino.vy = 2; // Tốc độ rơi nhanh (số càng lớn rơi càng nhanh)
     }
   }, []);
 

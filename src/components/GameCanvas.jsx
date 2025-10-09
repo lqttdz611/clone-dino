@@ -48,7 +48,51 @@ const GameCanvas = ({
         ctx.lineTo(i - ground, groundY + 100);
         ctx.stroke();
       }
+      if (frame % 200 === 0 && Math.random() > 0.1) {
+        // 70% cơ hội spawn
+        const cloudType = Math.random() > 0.5 ? "cloud1" : "cloud2"; // Random chọn loại mây
+        gameData.current.clouds.push({
+          x: canvas.width,
+          y: 50 + Math.random() * 100, // Random từ y=50 đến y=150 (cao hơn)
+          width: 80,
+          height: 30,
+          speed: 1 + Math.random() * 2, // Tốc độ bay chậm 1-3px/frame
+          type: cloudType,
+        });
+      }
+      // Draw and update clouds
+      const clouds = gameData.current.clouds;
+      for (let i = clouds.length - 1; i >= 0; i--) {
+        const cloud = clouds[i];
+        cloud.x -= cloud.speed;
 
+        // Vẽ cloud từ ảnh dựa trên loại mây
+        const cloudImage =
+          cloud.type === "cloud1"
+            ? images.current.bgCloud
+            : images.current.bgCloud2;
+
+        if (cloudImage && cloudImage.complete) {
+          ctx.drawImage(
+            cloudImage,
+            cloud.x,
+            cloud.y,
+            cloud.width,
+            cloud.height
+          );
+        } else {
+          // Fallback: vẽ hình chữ nhật nếu ảnh chưa load
+          ctx.fillStyle = isDark
+            ? "rgba(255, 255, 255, 0.3)"
+            : "rgba(0, 0, 0, 0.1)";
+          ctx.fillRect(cloud.x, cloud.y, cloud.width, cloud.height);
+        }
+
+        // Xóa cloud khi ra khỏi màn hình
+        if (cloud.x + cloud.width < 0) {
+          clouds.splice(i, 1);
+        }
+      }
       // Update dino
       dino.vy += gameData.current.gravity;
       dino.y += dino.vy;
@@ -87,8 +131,18 @@ const GameCanvas = ({
         ctx.fillRect(dino.x, drawY, dino.width, drawHeight);
       }
 
-      // Update obstacles
+      // Update obstacles - Kiểm tra khoảng cách với birds
       if (frame % 70 === 0 && Math.random() > 0.2) {
+        // Kiểm tra có bird nào gần không (trong vòng 300px)
+        const hasNearbyBird = birds.some(
+          (bird) => bird.x > canvas.width - 300 && bird.x < canvas.width + 150
+        );
+
+        // Nếu có bird gần, giảm cơ hội spawn obstacle
+        if (hasNearbyBird && Math.random() > 0.1) {
+          return; // Không spawn obstacle (chỉ 10% cơ hội)
+        }
+
         obstacles.push({
           x: canvas.width,
           y: groundY + 20,
@@ -98,17 +152,37 @@ const GameCanvas = ({
         });
       }
 
-      // Update birds
+      // Update birds - Kiểm tra khoảng cách với obstacles
       if (frame % 120 === 0 && Math.random() > 0.5) {
+        // Kiểm tra có obstacle nào gần không (trong vòng 400px)
+        const hasNearbyObstacle = obstacles.some(
+          (obs) => obs.x > canvas.width - 400 && obs.x < canvas.width + 200
+        );
+
+        // Nếu có obstacle gần, KHÔNG spawn chim (0% cơ hội)
+        if (hasNearbyObstacle) {
+          return; // Không spawn chim
+        }
+
+        // Kiểm tra có bird nào gần không (tránh spawn nhiều bird cùng lúc)
+        const hasNearbyBird = birds.some(
+          (bird) => bird.x > canvas.width - 200 && bird.x < canvas.width + 100
+        );
+
+        // Nếu có bird gần, giảm cơ hội spawn chim mới
+        if (hasNearbyBird && Math.random() > 0.2) {
+          return; // Chỉ 20% cơ hội spawn chim mới
+        }
+
         const randomHeight = Math.random();
         birds.push({
           x: canvas.width,
           y:
             randomHeight < 0.3
-              ? groundY - 20 - Math.random() * 30
-              : groundY - 50 - Math.random() * 100,
-          width: 45,
-          height: 30,
+              ? groundY - 30 - Math.random() * 30 // Chim bay thấp: y = groundY-30 đến groundY-60
+              : groundY - 80 - Math.random() * 120, // Chim bay cao: y = groundY-80 đến groundY-200
+          width: 100,
+          height: 100,
           wingUp: true,
         });
       }
@@ -154,32 +228,36 @@ const GameCanvas = ({
       for (let i = birds.length - 1; i >= 0; i--) {
         const bird = birds[i];
         bird.x -= speed + 2;
-        bird.wingUp = Math.floor(frame / 5) % 2 === 0;
 
-        ctx.fillStyle = theme.birdColor;
+        // Vẽ bird từ ảnh
+        if (images.current.birdSprite && images.current.birdSprite.complete) {
+          ctx.drawImage(
+            images.current.birdSprite,
+            bird.x,
+            bird.y,
+            bird.width,
+            bird.height
+          );
+        } else {
+          // Fallback: vẽ hình chữ nhật nếu ảnh chưa load
+          ctx.fillStyle = theme.birdColor;
+          ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+        }
 
-        // Bird body
-        ctx.fillRect(bird.x + 15, bird.y + 10, 20, 12);
+        // Collision detection - Điều chỉnh cho chim 100x100px
+        const birdHitbox = {
+          x: bird.x + 10, // Bỏ 10px từ trái
+          y: bird.y + 10, // Bỏ 10px từ trên
+          width: bird.width - 20, // Giảm 20px width
+          height: bird.height - 20, // Giảm 20px height
+        };
 
-        // Bird head
-        ctx.fillRect(bird.x + 30, bird.y + 8, 15, 14);
-
-        // Bird eye
-        ctx.fillStyle = "#000";
-        ctx.fillRect(bird.x + 38, bird.y + 12, 4, 4);
-
-        // Bird wings
-        ctx.fillStyle = theme.birdColor;
-        const wingY = bird.wingUp ? bird.y : bird.y + 15;
-        ctx.fillRect(bird.x + 5, wingY, 15, 8);
-        ctx.fillRect(bird.x + 30, wingY, 15, 8);
-
-        // Collision detection
         if (
-          dino.x < bird.x + bird.width &&
-          dino.x + (dino.ducking ? dino.width + 10 : dino.width) > bird.x &&
-          dino.y + (dino.ducking ? 25 : 0) < bird.y + bird.height &&
-          dino.y + dino.height > bird.y
+          dino.x < birdHitbox.x + birdHitbox.width &&
+          dino.x + (dino.ducking ? dino.width + 10 : dino.width) >
+            birdHitbox.x &&
+          dino.y + (dino.ducking ? 25 : 0) < birdHitbox.y + birdHitbox.height &&
+          dino.y + dino.height > birdHitbox.y
         ) {
           gameOver();
         }
@@ -187,7 +265,7 @@ const GameCanvas = ({
         if (bird.x + bird.width < 0) {
           birds.splice(i, 1);
           setScore((s) => {
-            const newScore = s + 15;
+            const newScore = s + 20; // Tăng điểm từ 15 lên 20 cho chim lớn
             const crossedHundred =
               Math.floor(s / 100) < Math.floor(newScore / 100);
             if (crossedHundred) {
