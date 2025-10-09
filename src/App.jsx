@@ -92,12 +92,44 @@ const DinoGame = () => {
     const container = containerRef.current;
     if (!container) return;
 
-    if (!document.fullscreenElement) {
-      container.requestFullscreen().catch((err) => {
-        console.log("Fullscreen error:", err);
-      });
+    // Check if already in fullscreen
+    const isFullscreen = !!(
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement
+    );
+
+    if (!isFullscreen) {
+      // Enter fullscreen
+      const requestFullscreen =
+        container.requestFullscreen ||
+        container.webkitRequestFullscreen ||
+        container.mozRequestFullScreen ||
+        container.msRequestFullscreen;
+
+      if (requestFullscreen) {
+        requestFullscreen.call(container).catch((err) => {
+          console.log("Fullscreen error:", err);
+          // Fallback: Show alert for manual fullscreen on mobile
+          if (window.innerWidth <= 768) {
+            alert(
+              "Please rotate your device to landscape mode and use your browser's fullscreen option for the best gaming experience!"
+            );
+          }
+        });
+      }
     } else {
-      document.exitFullscreen();
+      // Exit fullscreen
+      const exitFullscreen =
+        document.exitFullscreen ||
+        document.webkitExitFullscreen ||
+        document.mozCancelFullScreen ||
+        document.msExitFullscreen;
+
+      if (exitFullscreen) {
+        exitFullscreen.call(document);
+      }
     }
   }, []);
   useEffect(() => {
@@ -110,6 +142,43 @@ const DinoGame = () => {
       birdColor: "#ffbe0b",
     });
   }, [isDark]);
+
+  // Screen orientation and mobile detection
+  useEffect(() => {
+    const handleOrientationChange = () => {
+      // Force fullscreen on mobile when rotating to landscape
+      if (
+        window.innerWidth <= 768 &&
+        screen.orientation?.type?.includes("landscape")
+      ) {
+        setTimeout(() => {
+          handleFullscreen();
+        }, 500);
+      }
+    };
+
+    const handleResize = () => {
+      // Adjust canvas size on mobile
+      const canvas = canvasRef.current;
+      if (canvas && window.innerWidth <= 768) {
+        const containerWidth = canvas.parentElement.clientWidth;
+        const aspectRatio = 800 / 400;
+        canvas.style.width = `${containerWidth}px`;
+        canvas.style.height = `${containerWidth / aspectRatio}px`;
+      }
+    };
+
+    window.addEventListener("orientationchange", handleOrientationChange);
+    window.addEventListener("resize", handleResize);
+
+    // Initial resize
+    handleResize();
+
+    return () => {
+      window.removeEventListener("orientationchange", handleOrientationChange);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [handleFullscreen]);
 
   useEffect(() => {
     // Preload audio files
@@ -187,8 +256,12 @@ const DinoGame = () => {
     obstacle3.src = "./game_canvas/obs3.png";
     images.current.obstacle3 = obstacle3;
 
-    const savedLeaderboard = window.dinoLeaderboard || [];
-    if (savedLeaderboard) setLeaderboard(savedLeaderboard);
+    const savedHighScore = localStorage.getItem("dinoHighScore") || 0;
+    setHighScore(parseInt(savedHighScore, 10));
+
+    const savedLeaderboard =
+      JSON.parse(localStorage.getItem("dinoLeaderboard")) || [];
+    setLeaderboard(savedLeaderboard);
   }, [setHighScore, setLeaderboard, sounds, images]);
 
   useEffect(() => {
@@ -223,7 +296,7 @@ const DinoGame = () => {
 
   return (
     <div
-      className={`min-h-screen flex flex-col items-center justify-center p-4 ${
+      className={`min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 ${
         isDark ? "bg-gray-900" : "bg-blue-100"
       }`}
     >
@@ -248,9 +321,19 @@ const DinoGame = () => {
             width={800}
             height={400}
             onClick={gameState === "playing" ? jump : undefined}
-            className={`w-full rounded-lg shadow-2xl ${
-              isDark ? "border-4 border-gray-700" : "border-4 border-white"
+            onTouchStart={(e) => {
+              e.preventDefault();
+              if (gameState === "playing") jump();
+            }}
+            className={`w-full h-auto max-h-[50vh] sm:max-h-[400px] rounded-lg shadow-2xl ${
+              isDark
+                ? "border-2 sm:border-4 border-gray-700"
+                : "border-2 sm:border-4 border-white"
             }`}
+            style={{
+              aspectRatio: "800/400",
+              touchAction: "manipulation",
+            }}
           />
 
           {/* Game Overlays */}
@@ -287,20 +370,23 @@ const DinoGame = () => {
       </div>
 
       {/* Game Canvas Logic */}
-      <GameCanvas
-        canvasRef={canvasRef}
-        gameState={gameState}
-        gameData={gameData}
-        images={images}
-        sounds={sounds}
-        theme={theme}
-        isDark={isDark}
-        bgGradients={bgGradients}
-        bgGradientIndex={bgGradientIndex}
-        setScore={setScore}
-        setBgGradientIndex={setBgGradientIndex}
-        gameOver={handleGameOver}
-      />
+      {gameState === "playing" && (
+        <GameCanvas
+          canvasRef={canvasRef}
+          gameState={gameState}
+          gameData={gameData}
+          images={images}
+          sounds={sounds}
+          theme={theme}
+          isDark={isDark}
+          bgGradients={bgGradients}
+          score={score}
+          bgGradientIndex={bgGradientIndex}
+          setScore={setScore}
+          setBgGradientIndex={setBgGradientIndex}
+          gameOver={handleGameOver}
+        />
+      )}
     </div>
   );
 };

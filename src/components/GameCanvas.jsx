@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 const GameCanvas = ({
   canvasRef,
@@ -14,33 +14,78 @@ const GameCanvas = ({
   setBgGradientIndex,
   gameOver,
 }) => {
+  const animationFrameId = useRef(null);
+  const gameLoopRef = useRef(null);
+
+  // Store dynamic values in refs to avoid dependency issues
+  const dynamicRefs = useRef({
+    theme,
+    isDark,
+    bgGradients,
+    bgGradientIndex,
+    setScore,
+    setBgGradientIndex,
+    gameOver,
+    gameData,
+    images,
+    sounds,
+  });
+
+  // Update refs when props change
+  dynamicRefs.current = {
+    theme,
+    isDark,
+    bgGradients,
+    bgGradientIndex,
+    setScore,
+    setBgGradientIndex,
+    gameOver,
+    gameData,
+    images,
+    sounds,
+  };
+
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || gameState !== "playing") {
+      // Dừng vòng lặp cũ nếu có
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+        animationFrameId.current = null;
+      }
+      if (gameLoopRef.current) {
+        clearInterval(gameLoopRef.current);
+        gameLoopRef.current = null;
+      }
+      return;
+    }
 
     const ctx = canvas.getContext("2d");
     const groundY = canvas.height - 120;
-    gameData.current.groundY = groundY;
+    dynamicRefs.current.gameData.current.groundY = groundY;
 
     const draw = () => {
+      // Nếu không phải đang chơi, dừng lại
       if (gameState !== "playing") return;
 
-      const { dino, obstacles, birds, ground, speed, frame } = gameData.current;
+      const { dino, obstacles, birds, ground, speed, frame } =
+        dynamicRefs.current.gameData.current;
 
       // Clear canvas
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      const currentGradient = bgGradients[bgGradientIndex];
+      const currentGradient =
+        dynamicRefs.current.bgGradients[dynamicRefs.current.bgGradientIndex];
       gradient.addColorStop(0, currentGradient.color1);
       gradient.addColorStop(1, currentGradient.color2);
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Draw ground
-      ctx.fillStyle = theme.groundColor;
+      ctx.fillStyle = dynamicRefs.current.theme.groundColor;
       ctx.fillRect(0, groundY + 50, canvas.width, 50);
 
       // Ground pattern
-      ctx.strokeStyle = isDark ? "#1a1a2e" : "#6b5d4f";
+      ctx.strokeStyle = dynamicRefs.current.isDark ? "#1a1a2e" : "#6b5d4f";
       ctx.lineWidth = 2;
       for (let i = 0; i < canvas.width + 40; i += 40) {
         ctx.beginPath();
@@ -51,7 +96,7 @@ const GameCanvas = ({
       if (frame % 200 === 0 && Math.random() > 0.1) {
         // 70% cơ hội spawn
         const cloudType = Math.random() > 0.5 ? "cloud1" : "cloud2"; // Random chọn loại mây
-        gameData.current.clouds.push({
+        dynamicRefs.current.gameData.current.clouds.push({
           x: canvas.width,
           y: 50 + Math.random() * 100, // Random từ y=50 đến y=150 (cao hơn)
           width: 80,
@@ -61,7 +106,7 @@ const GameCanvas = ({
         });
       }
       // Draw and update clouds
-      const clouds = gameData.current.clouds;
+      const clouds = dynamicRefs.current.gameData.current.clouds;
       for (let i = clouds.length - 1; i >= 0; i--) {
         const cloud = clouds[i];
         cloud.x -= cloud.speed;
@@ -69,8 +114,8 @@ const GameCanvas = ({
         // Vẽ cloud từ ảnh dựa trên loại mây
         const cloudImage =
           cloud.type === "cloud1"
-            ? images.current.bgCloud
-            : images.current.bgCloud2;
+            ? dynamicRefs.current.images.current.bgCloud
+            : dynamicRefs.current.images.current.bgCloud2;
 
         if (cloudImage && cloudImage.complete) {
           ctx.drawImage(
@@ -82,7 +127,7 @@ const GameCanvas = ({
           );
         } else {
           // Fallback: vẽ hình chữ nhật nếu ảnh chưa load
-          ctx.fillStyle = isDark
+          ctx.fillStyle = dynamicRefs.current.isDark
             ? "rgba(255, 255, 255, 0.3)"
             : "rgba(0, 0, 0, 0.1)";
           ctx.fillRect(cloud.x, cloud.y, cloud.width, cloud.height);
@@ -94,7 +139,7 @@ const GameCanvas = ({
         }
       }
       // Update dino
-      dino.vy += gameData.current.gravity;
+      dino.vy += dynamicRefs.current.gameData.current.gravity;
       dino.y += dino.vy;
 
       if (dino.y >= groundY) {
@@ -107,13 +152,13 @@ const GameCanvas = ({
       let currentSprite = null;
 
       if (dino.ducking) {
-        currentSprite = images.current.playerDuck;
+        currentSprite = dynamicRefs.current.images.current.playerDuck;
       } else if (dino.jumping) {
-        currentSprite = images.current.playerJump;
+        currentSprite = dynamicRefs.current.images.current.playerJump;
       } else if (dino.y >= groundY) {
-        currentSprite = images.current.playerRun;
+        currentSprite = dynamicRefs.current.images.current.playerRun;
       } else {
-        currentSprite = images.current.playerIdle;
+        currentSprite = dynamicRefs.current.images.current.playerIdle;
       }
 
       // Vẽ sprite nếu đã load xong
@@ -144,7 +189,7 @@ const GameCanvas = ({
         }
       } else {
         // Fallback: vẽ hình chữ nhật đơn giản
-        ctx.fillStyle = theme.dinoColor;
+        ctx.fillStyle = dynamicRefs.current.theme.dinoColor;
         if (dino.ducking) {
           // Fallback cho ducking với kích thước lớn hơn
           const fallbackWidth = dino.width + 30;
@@ -158,8 +203,27 @@ const GameCanvas = ({
         }
       }
 
-      // Update obstacles - Tối ưu hóa spawn logic
-      if (frame % 70 === 0 && Math.random() > 0.2) {
+      // Update obstacles - Dynamic spawn rate based on score
+      const currentScore = dynamicRefs.current.gameData.current.score || 0;
+      let obstacleSpawnRate = 90; // Default spawn rate
+      let obstacleSpawnChance = 0.4; // Default spawn chance
+
+      // Adjust spawn rate based on score milestones
+      if (currentScore >= 1000) {
+        obstacleSpawnRate = 70; // Faster spawning
+        obstacleSpawnChance = 0.55; // More frequent
+      } else if (currentScore >= 800) {
+        obstacleSpawnRate = 75; // Faster spawning
+        obstacleSpawnChance = 0.5; // More frequent
+      } else if (currentScore >= 500) {
+        obstacleSpawnRate = 80; // Faster spawning
+        obstacleSpawnChance = 0.45; // More frequent
+      }
+
+      if (
+        frame % obstacleSpawnRate === 0 &&
+        Math.random() > obstacleSpawnChance
+      ) {
         const obstacleTypes = [1, 2, 3];
         const randomType = obstacleTypes[Math.floor(Math.random() * 3)];
 
@@ -170,12 +234,28 @@ const GameCanvas = ({
           3: { displayWidth: 80, displayHeight: 100 }, // Obstacle3 lớn nhất
         };
 
-        // 40% cơ hội tạo khối obstacle lớn (2 obstacles cạnh nhau)
-        if (Math.random() < 0.4) {
-          // Khối obstacle lớn
-          const secondType =
-            obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
-          const size1 = obstacleSizes[randomType];
+        // Dynamic large obstacle chance based on score
+        let largeObstacleChance = 0.25; // Default chance
+        if (currentScore >= 1000) {
+          largeObstacleChance = 0.35; // More large obstacles at high score
+        } else if (currentScore >= 800) {
+          largeObstacleChance = 0.3; // More large obstacles
+        } else if (currentScore >= 500) {
+          largeObstacleChance = 0.28; // Slightly more large obstacles
+        }
+
+        if (Math.random() < largeObstacleChance) {
+          // Khối obstacle lớn - chỉ cho phép obstacle1 và obstacle3
+          let firstType, secondType;
+          if (Math.random() > 0.5) {
+            firstType = 1; // obstacle1
+            secondType = 3; // obstacle3
+          } else {
+            firstType = 3; // obstacle3
+            secondType = 1; // obstacle1
+          }
+
+          const size1 = obstacleSizes[firstType];
           const size2 = obstacleSizes[secondType];
 
           obstacles.push({
@@ -185,8 +265,8 @@ const GameCanvas = ({
             height: 50, // Hitbox height giữ nguyên
             displayWidth: Math.max(size1.displayWidth, size2.displayWidth), // Lấy kích thước lớn nhất
             displayHeight: Math.max(size1.displayHeight, size2.displayHeight), // Lấy kích thước lớn nhất
-            type: randomType, // Obstacle đầu tiên
-            secondType: secondType, // Obstacle thứ hai
+            type: firstType, // Obstacle đầu tiên (1 hoặc 3)
+            secondType: secondType, // Obstacle thứ hai (3 hoặc 1)
             isLarge: true,
           });
         } else {
@@ -205,36 +285,51 @@ const GameCanvas = ({
           });
         }
       }
-      // Update birds - Kiểm tra khoảng cách với obstacles (tối ưu hóa)
-      if (frame % 120 === 0 && Math.random() > 0.5) {
-        // Kiểm tra có obstacle nào gần không (giảm khoảng cách từ 400px xuống 200px)
+      // Update birds - Dynamic spawn rate based on score
+      let birdSpawnRate = 150; // Default spawn rate
+      let birdSpawnChance = 0.6; // Default spawn chance
+
+      // Adjust bird spawn rate based on score milestones
+      if (currentScore >= 1000) {
+        birdSpawnRate = 120; // Faster spawning
+        birdSpawnChance = 0.7; // More frequent
+      } else if (currentScore >= 800) {
+        birdSpawnRate = 130; // Faster spawning
+        birdSpawnChance = 0.65; // More frequent
+      } else if (currentScore >= 500) {
+        birdSpawnRate = 140; // Faster spawning
+        birdSpawnChance = 0.62; // More frequent
+      }
+
+      if (frame % birdSpawnRate === 0 && Math.random() > birdSpawnChance) {
+        // Kiểm tra có obstacle nào gần không (early return optimization)
         let hasNearbyObstacle = false;
         for (let i = 0; i < obstacles.length; i++) {
           const obs = obstacles[i];
-          if (obs.x > canvas.width - 200 && obs.x < canvas.width + 50) {
+          if (obs.x > canvas.width - 300) {
             hasNearbyObstacle = true;
-            break; // Thoát sớm khi tìm thấy
+            break;
           }
         }
 
-        // Nếu có obstacle gần, giảm cơ hội spawn chim (không hoàn toàn 0%)
-        if (hasNearbyObstacle && Math.random() > 0.1) {
-          return; // Chỉ 10% cơ hội spawn chim khi có obstacle gần
+        // Nếu có obstacle gần, giảm cơ hội spawn chim
+        if (hasNearbyObstacle && Math.random() > 0.2) {
+          return;
         }
 
-        // Kiểm tra có bird nào gần không (giảm khoảng cách từ 200px xuống 150px)
+        // Kiểm tra có bird nào gần không (early return optimization)
         let hasNearbyBird = false;
         for (let i = 0; i < birds.length; i++) {
           const bird = birds[i];
-          if (bird.x > canvas.width - 150 && bird.x < canvas.width + 50) {
+          if (bird.x > canvas.width - 250) {
             hasNearbyBird = true;
-            break; // Thoát sớm khi tìm thấy
+            break;
           }
         }
 
         // Nếu có bird gần, giảm cơ hội spawn chim mới
-        if (hasNearbyBird && Math.random() > 0.3) {
-          return; // 30% cơ hội spawn chim mới
+        if (hasNearbyBird && Math.random() > 0.4) {
+          return;
         }
 
         const randomHeight = Math.random();
@@ -242,10 +337,10 @@ const GameCanvas = ({
           x: canvas.width,
           y:
             randomHeight < 0.3
-              ? groundY - 30 - Math.random() * 30 // Chim bay thấp: y = groundY-30 đến groundY-60
-              : groundY - 80 - Math.random() * 120, // Chim bay cao: y = groundY-80 đến groundY-200
-          width: 100,
-          height: 100,
+              ? groundY - 30 - Math.random() * 30
+              : groundY - 80 - Math.random() * 120,
+          width: 80, // Giảm kích thước bird
+          height: 80,
           wingUp: true,
         });
       }
@@ -258,11 +353,11 @@ const GameCanvas = ({
         // Chọn ảnh tương ứng
         let obstacleImage = null;
         if (obs.type === 1) {
-          obstacleImage = images.current.obstacle1;
+          obstacleImage = dynamicRefs.current.images.current.obstacle1;
         } else if (obs.type === 2) {
-          obstacleImage = images.current.obstacle2;
+          obstacleImage = dynamicRefs.current.images.current.obstacle2;
         } else if (obs.type === 3) {
-          obstacleImage = images.current.obstacle3;
+          obstacleImage = dynamicRefs.current.images.current.obstacle3;
         }
 
         // Vẽ obstacle từ ảnh với kích thước hiển thị lớn hơn
@@ -271,12 +366,12 @@ const GameCanvas = ({
             // Khối obstacle lớn - vẽ 2 obstacles cạnh nhau
             const secondObstacleImage =
               obs.secondType === 1
-                ? images.current.obstacle1
+                ? dynamicRefs.current.images.current.obstacle1
                 : obs.secondType === 2
-                ? images.current.obstacle2
+                ? dynamicRefs.current.images.current.obstacle2
                 : obs.secondType === 3
-                ? images.current.obstacle3
-                : images.current.obstacle1;
+                ? dynamicRefs.current.images.current.obstacle3
+                : dynamicRefs.current.images.current.obstacle1;
 
             if (secondObstacleImage && secondObstacleImage.complete) {
               // Vẽ obstacle đầu tiên
@@ -316,31 +411,41 @@ const GameCanvas = ({
           }
         } else {
           // Fallback: vẽ hình chữ nhật nếu ảnh chưa load
-          ctx.fillStyle = theme.obstacleColor;
+          ctx.fillStyle = dynamicRefs.current.theme.obstacleColor;
           ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
         }
 
         // Collision detection - Chỉ kiểm tra khi obstacle gần dino (tối ưu hóa)
-        if (obs.x < dino.x + 100 && obs.x + obs.width > dino.x - 50) {
+        if (
+          gameState === "playing" &&
+          obs.x < dino.x + 100 &&
+          obs.x + obs.width > dino.x - 50
+        ) {
           if (
             dino.x < obs.x + obs.width &&
-            dino.x + (dino.ducking ? dino.width + 10 : dino.width) > obs.x &&
-            dino.y + (dino.ducking ? 25 : 0) < obs.y + obs.height &&
+            dino.x + (dino.ducking ? dino.width + 20 : dino.width) > obs.x &&
+            dino.y + (dino.ducking ? 30 : 0) < obs.y + obs.height &&
             dino.y + dino.height > obs.y
           ) {
-            gameOver();
+            dynamicRefs.current.gameOver();
+            return; // Dừng ngay sau khi gameOver để tránh multiple calls
           }
         }
 
         if (obs.x + obs.width < 0) {
           obstacles.splice(i, 1);
-          setScore((s) => {
-            const newScore = s + (obs.isLarge ? 25 : 10); // Khối lớn cho 25 điểm, đơn cho 10 điểm
+          const scoreIncrement = obs.isLarge ? 25 : 10;
+          dynamicRefs.current.setScore((s) => {
+            const newScore = s + scoreIncrement;
+            // Update gameData score for speed calculation
+            dynamicRefs.current.gameData.current.score = newScore;
             const crossedHundred =
               Math.floor(s / 100) < Math.floor(newScore / 100);
             if (crossedHundred) {
-              sounds.current.score();
-              setBgGradientIndex((prev) => (prev + 1) % bgGradients.length);
+              dynamicRefs.current.sounds.current.score();
+              dynamicRefs.current.setBgGradientIndex(
+                (prev) => (prev + 1) % dynamicRefs.current.bgGradients.length
+              );
             }
             return newScore;
           });
@@ -353,9 +458,12 @@ const GameCanvas = ({
         bird.x -= speed + 2;
 
         // Vẽ bird từ ảnh
-        if (images.current.birdSprite && images.current.birdSprite.complete) {
+        if (
+          dynamicRefs.current.images.current.birdSprite &&
+          dynamicRefs.current.images.current.birdSprite.complete
+        ) {
           ctx.drawImage(
-            images.current.birdSprite,
+            dynamicRefs.current.images.current.birdSprite,
             bird.x,
             bird.y,
             bird.width,
@@ -363,11 +471,11 @@ const GameCanvas = ({
           );
         } else {
           // Fallback: vẽ hình chữ nhật nếu ảnh chưa load
-          ctx.fillStyle = theme.birdColor;
+          ctx.fillStyle = dynamicRefs.current.theme.birdColor;
           ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
         }
 
-        // Collision detection - Điều chỉnh cho chim 100x100px
+        // Collision detection - Điều chỉnh cho chim 80x80px
         const birdHitbox = {
           x: bird.x + 10, // Bỏ 10px từ trái
           y: bird.y + 10, // Bỏ 10px từ trên
@@ -376,28 +484,37 @@ const GameCanvas = ({
         };
 
         // Collision detection - Chỉ kiểm tra khi bird gần dino (tối ưu hóa)
-        if (bird.x < dino.x + 100 && bird.x + bird.width > dino.x - 50) {
+        if (
+          gameState === "playing" &&
+          bird.x < dino.x + 100 &&
+          bird.x + bird.width > dino.x - 50
+        ) {
           if (
             dino.x < birdHitbox.x + birdHitbox.width &&
-            dino.x + (dino.ducking ? dino.width + 10 : dino.width) >
+            dino.x + (dino.ducking ? dino.width + 20 : dino.width) >
               birdHitbox.x &&
-            dino.y + (dino.ducking ? 25 : 0) <
+            dino.y + (dino.ducking ? 30 : 0) <
               birdHitbox.y + birdHitbox.height &&
             dino.y + dino.height > birdHitbox.y
           ) {
-            gameOver();
+            dynamicRefs.current.gameOver();
+            return; // Dừng ngay sau khi gameOver để tránh multiple calls
           }
         }
 
         if (bird.x + bird.width < 0) {
           birds.splice(i, 1);
-          setScore((s) => {
-            const newScore = s + 20; // Tăng điểm từ 15 lên 20 cho chim lớn
+          dynamicRefs.current.setScore((s) => {
+            const newScore = s + 15; // Reduced from 20
+            // Update gameData score for speed calculation
+            dynamicRefs.current.gameData.current.score = newScore;
             const crossedHundred =
               Math.floor(s / 100) < Math.floor(newScore / 100);
             if (crossedHundred) {
-              sounds.current.score();
-              setBgGradientIndex((prev) => (prev + 1) % bgGradients.length);
+              dynamicRefs.current.sounds.current.score();
+              dynamicRefs.current.setBgGradientIndex(
+                (prev) => (prev + 1) % dynamicRefs.current.bgGradients.length
+              );
             }
             return newScore;
           });
@@ -405,53 +522,65 @@ const GameCanvas = ({
       }
 
       // Update ground scroll
-      gameData.current.ground = (ground + speed) % 40;
+      dynamicRefs.current.gameData.current.ground = (ground + speed) % 40;
 
-      // Increase speed over time
+      // Increase speed over time - Fix setScore bug
       if (frame % 100 === 0) {
-        const targetSpeed = 6 + (setScore / 100) * 0.5;
-        if (speed < targetSpeed && speed < 18) {
-          gameData.current.speed = Math.min(targetSpeed, 18);
+        // Get current score from gameData instead of setScore function
+        const currentScore = dynamicRefs.current.gameData.current.score || 0;
+        let targetSpeed = 6 + (currentScore / 100) * 0.5;
+
+        // DIFFICULTY MILESTONES - Tăng độ khó theo điểm
+        if (currentScore >= 1000) {
+          targetSpeed += 4; // +4 speed boost at 1000 points
+        } else if (currentScore >= 800) {
+          targetSpeed += 3; // +3 speed boost at 800 points
+        } else if (currentScore >= 500) {
+          targetSpeed += 2; // +2 speed boost at 500 points
+        }
+
+        if (speed < targetSpeed && speed < 20) {
+          // Increased max speed to 20
+          dynamicRefs.current.gameData.current.speed = Math.min(
+            targetSpeed,
+            20
+          );
         }
       }
 
-      // HARDCORE MODE - Multiple difficulty increases
-      if (frame % 180 === 0) {
+      // HARDCORE MODE - Balanced difficulty increases
+      if (frame % 300 === 0) {
+        // Every 5 seconds instead of 3
         if (speed < 16) {
-          gameData.current.speed += 0.8;
+          dynamicRefs.current.gameData.current.speed += 0.4; // Reduced from 0.8
         }
 
-        if (gameData.current.gravity < 1.2) {
-          gameData.current.gravity += 0.02;
+        if (dynamicRefs.current.gameData.current.gravity < 1.2) {
+          dynamicRefs.current.gameData.current.gravity += 0.01; // Reduced from 0.02
         }
 
-        if (gameData.current.jumpPower > -18) {
-          gameData.current.jumpPower -= 0.3;
+        if (dynamicRefs.current.gameData.current.jumpPower > -18) {
+          dynamicRefs.current.gameData.current.jumpPower -= 0.2; // Reduced from 0.3
         }
       }
 
-      gameData.current.frame++;
+      dynamicRefs.current.gameData.current.frame++;
     };
 
-    const gameLoop = setInterval(draw, 1000 / 60);
+    gameLoopRef.current = setInterval(draw, 1000 / 60);
 
     return () => {
-      clearInterval(gameLoop);
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+        animationFrameId.current = null;
+      }
+      if (gameLoopRef.current) {
+        clearInterval(gameLoopRef.current);
+        gameLoopRef.current = null;
+      }
     };
-  }, [
-    gameState,
-    theme,
-    isDark,
-    bgGradients,
-    bgGradientIndex,
-    setScore,
-    setBgGradientIndex,
-    gameOver,
-    gameData,
-    images,
-    sounds,
-    canvasRef,
-  ]);
+  }, [gameState]); // CHỈ giữ gameState - loại bỏ tất cả dependencies khác để tránh re-render không cần thiết
+  return null;
 };
 
 export default GameCanvas;

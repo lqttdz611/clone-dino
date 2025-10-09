@@ -63,6 +63,7 @@ export const useGameLogic = () => {
       frame: 0,
       gravity: 0.8,
       jumpPower: -15,
+      score: 0, // Add score tracking to gameData
     };
     setScore(0);
     setGameState("playing");
@@ -75,7 +76,7 @@ export const useGameLogic = () => {
 
       if (score > highScore) {
         setHighScore(score);
-        window.dinoHighScore = score;
+        localStorage.setItem("dinoHighScore", score);
         sounds.current.highScore();
       }
 
@@ -88,7 +89,7 @@ export const useGameLogic = () => {
           .sort((a, b) => b.score - a.score)
           .slice(0, 10);
         setLeaderboard(newLeaderboard);
-        window.dinoLeaderboard = newLeaderboard;
+        localStorage.setItem("dinoLeaderboard", JSON.stringify(newLeaderboard));
       }
     },
     [score, highScore]
