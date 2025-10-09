@@ -5,9 +5,10 @@ import GameMenu from "./components/GameMenu";
 import GameOver from "./components/GameOver";
 import Leaderboard from "./components/Leaderboard";
 import SettingsPanel from "./components/SettingsPanel";
+import { useDevToolsBlocker } from "./hooks/useDevToolsBlocker";
 import { useGameLogic } from "./hooks/useGameLogic";
-
 const DinoGame = () => {
+  useDevToolsBlocker();
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const [isDark, setIsDark] = useState(true);
