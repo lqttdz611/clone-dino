@@ -161,7 +161,7 @@ const GameCanvas = ({
       // Update obstacles - Tối ưu hóa spawn logic
       if (frame % 70 === 0 && Math.random() > 0.2) {
         const obstacleTypes = [1, 2, 3];
-        const randomType = obstacleTypes[Math.floor(Math.random() * 4)];
+        const randomType = obstacleTypes[Math.floor(Math.random() * 3)];
 
         // Kích thước hiển thị khác nhau cho từng loại obstacle
         const obstacleSizes = {
@@ -274,7 +274,9 @@ const GameCanvas = ({
                 ? images.current.obstacle1
                 : obs.secondType === 2
                 ? images.current.obstacle2
-                : obs.secondType === 3;
+                : obs.secondType === 3
+                ? images.current.obstacle3
+                : images.current.obstacle1;
 
             if (secondObstacleImage && secondObstacleImage.complete) {
               // Vẽ obstacle đầu tiên
