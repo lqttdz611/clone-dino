@@ -1,5 +1,5 @@
 import { Moon, Play, RotateCcw, Settings, Sun, Trophy } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const DinoGame = () => {
   const canvasRef = useRef(null);
@@ -21,38 +21,41 @@ const DinoGame = () => {
     obstacleColor: "#ff006e",
     birdColor: "#ffbe0b",
   });
-  const bgGradients = [
-    // Gradient 1: Original
-    {
-      color1: isDark ? "#1a1a2e" : "#87ceeb",
-      color2: isDark ? "#16213e" : "#b0e0e6",
-    },
-    // Gradient 2: Purple Dream
-    {
-      color1: isDark ? "#2d1b69" : "#ee9ca7",
-      color2: isDark ? "#1a0f3d" : "#ffdde1",
-    },
-    // Gradient 3: Ocean Blue
-    {
-      color1: isDark ? "#0f2027" : "#56ccf2",
-      color2: isDark ? "#203a43" : "#2f80ed",
-    },
-    // Gradient 4: Sunset Orange
-    {
-      color1: isDark ? "#36096d" : "#f83600",
-      color2: isDark ? "#1a0033" : "#f9d423",
-    },
-    // Gradient 5: Forest Green
-    {
-      color1: isDark ? "#0a3d2c" : "#56ab2f",
-      color2: isDark ? "#04160f" : "#a8e063",
-    },
-    // Gradient 6: Pink Paradise
-    {
-      color1: isDark ? "#4a1942" : "#f857a6",
-      color2: isDark ? "#2d0a2b" : "#ff5858",
-    },
-  ];
+  const bgGradients = useMemo(
+    () => [
+      // Gradient 1: Original
+      {
+        color1: isDark ? "#1a1a2e" : "#87ceeb",
+        color2: isDark ? "#16213e" : "#b0e0e6",
+      },
+      // Gradient 2: Purple Dream
+      {
+        color1: isDark ? "#2d1b69" : "#ee9ca7",
+        color2: isDark ? "#1a0f3d" : "#ffdde1",
+      },
+      // Gradient 3: Ocean Blue
+      {
+        color1: isDark ? "#0f2027" : "#56ccf2",
+        color2: isDark ? "#203a43" : "#2f80ed",
+      },
+      // Gradient 4: Sunset Orange
+      {
+        color1: isDark ? "#36096d" : "#f83600",
+        color2: isDark ? "#1a0033" : "#f9d423",
+      },
+      // Gradient 5: Forest Green
+      {
+        color1: isDark ? "#0a3d2c" : "#56ab2f",
+        color2: isDark ? "#04160f" : "#a8e063",
+      },
+      // Gradient 6: Pink Paradise
+      {
+        color1: isDark ? "#4a1942" : "#f857a6",
+        color2: isDark ? "#2d0a2b" : "#ff5858",
+      },
+    ],
+    [isDark]
+  );
   const gameLoop = useRef(null);
   const gameData = useRef({
     dino: {
@@ -91,10 +94,10 @@ const DinoGame = () => {
 
   useEffect(() => {
     // Preload audio files
-    const jumpAudio = new Audio("/sounds/jump.mp3");
-    const scoreAudio = new Audio("/sounds/score.mp3");
-    const gameOverAudio = new Audio("/sounds/gameover.mp3");
-    const highScoreAudio = new Audio("/sounds/highscore.mp3");
+    const jumpAudio = new Audio("./sounds/jump.mp3");
+    const scoreAudio = new Audio("./sounds/score.mp3");
+    const gameOverAudio = new Audio("./sounds/gameover.mp3");
+    const highScoreAudio = new Audio("./sounds/highscore.mp3");
     // Set volumes
     jumpAudio.volume = 0.3;
     scoreAudio.volume = 1.0;
@@ -127,7 +130,7 @@ const DinoGame = () => {
 
     // Load 4 sprite images (1024x1024 each)
     const playerSprite = new Image();
-    playerSprite.src = "/dino_skin/all2.png"; // Đường dẫn đến ảnh của bạn
+    playerSprite.src = "./dino_skin/all2.png"; // Đường dẫn đến ảnh của bạn
 
     images.current.playerRun = playerSprite;
     images.current.playerJump = playerSprite;
@@ -205,7 +208,7 @@ const DinoGame = () => {
     gameData.current.dino.ducking = false;
   }, []);
 
-  const gameOver = () => {
+  const gameOver = useCallback(() => {
     setGameState("gameover");
     sounds.current.gameOver();
 
@@ -226,7 +229,7 @@ const DinoGame = () => {
       setLeaderboard(newLeaderboard);
       window.dinoLeaderboard = newLeaderboard;
     }
-  };
+  }, [score, highScore, playerName, leaderboard]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
