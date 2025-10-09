@@ -160,15 +160,14 @@ const GameCanvas = ({
 
       // Update obstacles - Tối ưu hóa spawn logic
       if (frame % 70 === 0 && Math.random() > 0.2) {
-        const obstacleTypes = [1, 2, 3, 4];
+        const obstacleTypes = [1, 2, 3];
         const randomType = obstacleTypes[Math.floor(Math.random() * 4)];
 
         // Kích thước hiển thị khác nhau cho từng loại obstacle
         const obstacleSizes = {
           1: { displayWidth: 80, displayHeight: 100 }, // Obstacle1 lớn nhất
           2: { displayWidth: 85, displayHeight: 95 }, // Obstacle2 lớn
-          3: { displayWidth: 60, displayHeight: 70 }, // Obstacle3 bình thường
-          4: { displayWidth: 80, displayHeight: 100 }, // Obstacle4 lớn nhất
+          3: { displayWidth: 80, displayHeight: 100 }, // Obstacle3 lớn nhất
         };
 
         // 40% cơ hội tạo khối obstacle lớn (2 obstacles cạnh nhau)
@@ -264,8 +263,6 @@ const GameCanvas = ({
           obstacleImage = images.current.obstacle2;
         } else if (obs.type === 3) {
           obstacleImage = images.current.obstacle3;
-        } else if (obs.type === 4) {
-          obstacleImage = images.current.obstacle4;
         }
 
         // Vẽ obstacle từ ảnh với kích thước hiển thị lớn hơn
@@ -277,9 +274,7 @@ const GameCanvas = ({
                 ? images.current.obstacle1
                 : obs.secondType === 2
                 ? images.current.obstacle2
-                : obs.secondType === 3
-                ? images.current.obstacle3
-                : images.current.obstacle4;
+                : obs.secondType === 3;
 
             if (secondObstacleImage && secondObstacleImage.complete) {
               // Vẽ obstacle đầu tiên

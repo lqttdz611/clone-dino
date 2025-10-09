@@ -1,4 +1,4 @@
-import { Moon, Settings, Sun, Trophy } from "lucide-react";
+import { Maximize, Moon, Settings, Sun, Trophy } from "lucide-react";
 
 const GameHeader = ({
   isDark,
@@ -9,6 +9,7 @@ const GameHeader = ({
   setShowSettings,
   showLeaderboard,
   setShowLeaderboard,
+  onFullscreen,
 }) => {
   return (
     <div className="flex justify-between items-center mb-4">
@@ -52,6 +53,20 @@ const GameHeader = ({
       </div>
 
       <div className="flex gap-2">
+        <button
+          onClick={onFullscreen}
+          className={`p-3 rounded-lg ${
+            isDark
+              ? "bg-gray-800 hover:bg-gray-700"
+              : "bg-white hover:bg-gray-100"
+          } shadow-lg transition-all`}
+          title="Fullscreen"
+        >
+          <Maximize
+            className={isDark ? "text-blue-400" : "text-blue-600"}
+            size={24}
+          />
+        </button>
         <button
           onClick={() => setShowLeaderboard(!showLeaderboard)}
           className={`p-3 rounded-lg ${

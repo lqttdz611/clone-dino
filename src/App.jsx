@@ -9,6 +9,7 @@ import { useGameLogic } from "./hooks/useGameLogic";
 
 const DinoGame = () => {
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
   const [isDark, setIsDark] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
@@ -87,7 +88,18 @@ const DinoGame = () => {
   const handleGameOver = useCallback(() => {
     gameOver(playerName, leaderboard, setLeaderboard);
   }, [gameOver, playerName, leaderboard, setLeaderboard]);
+  const handleFullscreen = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
 
+    if (!document.fullscreenElement) {
+      container.requestFullscreen().catch((err) => {
+        console.log("Fullscreen error:", err);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  }, []);
   useEffect(() => {
     setTheme({
       bgColor1: isDark ? "#1a1a2e" : "#87ceeb",
@@ -175,10 +187,6 @@ const DinoGame = () => {
     obstacle3.src = "./game_canvas/obs3.png";
     images.current.obstacle3 = obstacle3;
 
-    const obstacle4 = new Image();
-    obstacle4.src = "./game_canvas/obs4.png";
-    images.current.obstacle4 = obstacle4;
-
     const savedLeaderboard = window.dinoLeaderboard || [];
     if (savedLeaderboard) setLeaderboard(savedLeaderboard);
   }, [setHighScore, setLeaderboard, sounds, images]);
@@ -219,7 +227,7 @@ const DinoGame = () => {
         isDark ? "bg-gray-900" : "bg-blue-100"
       }`}
     >
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-4xl" ref={containerRef}>
         {/* Header */}
         <GameHeader
           isDark={isDark}
@@ -230,6 +238,7 @@ const DinoGame = () => {
           setShowSettings={setShowSettings}
           showLeaderboard={showLeaderboard}
           setShowLeaderboard={setShowLeaderboard}
+          onFullscreen={handleFullscreen}
         />
 
         {/* Canvas */}
