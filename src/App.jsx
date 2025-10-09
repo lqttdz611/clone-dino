@@ -141,10 +141,11 @@ const DinoGame = () => {
     // Load sprite image
     const playerSprite = new Image();
     playerSprite.src = "./dino_skin/all2.png";
-
+    const playerDucking = new Image();
+    playerDucking.src = "./dino_skin/ducking.png";
     images.current.playerRun = playerSprite;
     images.current.playerJump = playerSprite;
-    images.current.playerDuck = playerSprite;
+    images.current.playerDuck = playerDucking;
     images.current.playerIdle = playerSprite;
 
     const bgCloud = new Image();
@@ -161,6 +162,22 @@ const DinoGame = () => {
     const birdSprite = new Image();
     birdSprite.src = "./game_canvas/bird.png";
     images.current.birdSprite = birdSprite;
+
+    const obstacle1 = new Image();
+    obstacle1.src = "./game_canvas/obs1.png";
+    images.current.obstacle1 = obstacle1;
+
+    const obstacle2 = new Image();
+    obstacle2.src = "./game_canvas/obs2.png";
+    images.current.obstacle2 = obstacle2;
+
+    const obstacle3 = new Image();
+    obstacle3.src = "./game_canvas/obs3.png";
+    images.current.obstacle3 = obstacle3;
+
+    const obstacle4 = new Image();
+    obstacle4.src = "./game_canvas/obs4.png";
+    images.current.obstacle4 = obstacle4;
 
     const savedLeaderboard = window.dinoLeaderboard || [];
     if (savedLeaderboard) setLeaderboard(savedLeaderboard);
