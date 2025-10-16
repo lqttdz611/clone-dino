@@ -82,10 +82,16 @@ export const useGameLogic = () => {
 
       // Update leaderboard
       if (playerName && score > 0) {
-        const newLeaderboard = [
-          ...leaderboard,
-          { name: playerName, score, date: new Date().toLocaleDateString() },
-        ]
+        const now = new Date();
+        const newEntry = {
+          name: playerName,
+          score,
+          // Keep legacy date for backward compatibility in UI
+          date: now.toLocaleDateString(),
+          // New precise ISO timestamp for timeline and sorting
+          timestamp: now.toISOString(),
+        };
+        const newLeaderboard = [...leaderboard, newEntry]
           .sort((a, b) => b.score - a.score)
           .slice(0, 10);
         setLeaderboard(newLeaderboard);
